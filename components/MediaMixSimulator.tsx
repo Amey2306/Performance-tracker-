@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MediaChannel, CalculatedMetrics, ViewMode } from '../types';
-import { PieChart, TrendingUp, AlertCircle, CheckCircle2, Plus, Trash2, RefreshCw, ChevronDown } from 'lucide-react';
+import { PieChart, TrendingUp, AlertCircle, CheckCircle2, Plus, Trash2, ChevronDown, RotateCcw } from 'lucide-react';
 
 interface Props {
   channels: MediaChannel[];
@@ -19,23 +19,82 @@ export const MediaMixSimulator: React.FC<Props> = ({
 }) => {
   
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const budgetInputRef = useRef<HTMLInputElement>(null);
 
-  // Use manual budget if set, otherwise fallback to calculated All-In or Base budget
+  // Fallback Budget (Calculated from Business Plan)
   const calculatedTotal = viewMode === ViewMode.AGENCY ? metrics.allInBudget : metrics.baseBudget;
-  const activeBudget = manualBudget !== undefined ? manualBudget : calculatedTotal;
   
-  // Calculate totals
-  const totalAllocation = channels.reduce((sum, ch) => sum + ch.allocationPercent, 0);
+  // The 'source of truth' from props. 
+  const propBudget = manualBudget !== undefined ? manualBudget : calculatedTotal;
+
+  // Local state handles the input field text for smooth typing
+  const [localInputValue, setLocalInputValue] = useState<string>(propBudget.toString());
+
+  // Sync local state ONLY when prop changes externally AND input is not focused.
+  // This prevents the input from fighting the user while they type.
+  useEffect(() => {
+    if (document.activeElement !== budgetInputRef.current) {
+        setLocalInputValue(propBudget.toString());
+    }
+  }, [propBudget]);
+
+  // 1. HANDLE SIMULATION BUDGET CHANGE
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalInputValue(val); 
+
+    const numVal = parseFloat(val);
+    if (!isNaN(numVal)) {
+        onUpdateManualBudget(numVal);
+    } else if (val === '') {
+        onUpdateManualBudget(0);
+    }
+  };
+
+  const handleBudgetBlur = () => {
+      const numVal = parseFloat(localInputValue);
+      if (isNaN(numVal)) {
+          onUpdateManualBudget(0);
+          setLocalInputValue("0");
+      } else {
+          onUpdateManualBudget(numVal);
+      }
+  };
+
+  const handleReset = () => {
+      onUpdateManualBudget(calculatedTotal);
+      setLocalInputValue(calculatedTotal.toString());
+  };
+  
+  // 2. DETERMINE ACTIVE BUDGET FOR CALCULATION
+  // We use the local string parsed as float to ensure the table updates INSTANTLY as you type.
+  const currentInputVal = parseFloat(localInputValue);
+  const activeBudget = !isNaN(currentInputVal) ? currentInputVal : 0;
+
+  // 3. HANDLE CHANNEL BUDGET CHANGE (Reverse Calculation)
+  const handleChannelBudgetChange = (channelId: string, newBudget: number) => {
+      // If total budget is 0, we can't calculate percentage. Avoid division by zero.
+      if (activeBudget <= 0) return; 
+      
+      const newAlloc = (newBudget / activeBudget) * 100;
+      onUpdateChannel(channelId, 'allocationPercent', newAlloc);
+  };
+
+  // 4. PERFORM FORECASTING
+  const totalAllocation = channels.reduce((sum, ch) => sum + (ch.allocationPercent || 0), 0);
   
   const forecastedData = channels.map(ch => {
-    const budget = activeBudget * (ch.allocationPercent / 100);
-    // Protect against division by zero
-    const leads = ch.estimatedCpl > 0 ? budget / ch.estimatedCpl : 0;
+    const alloc = isNaN(ch.allocationPercent) ? 0 : ch.allocationPercent;
     
-    // Funnel Calculations
-    const capi = leads * (ch.capiPercent / 100);
-    const ap = capi * (ch.capiToApPercent / 100);
-    const ad = ap * (ch.apToAdPercent / 100);
+    // Budget = Total * %
+    const budget = activeBudget * (alloc / 100);
+    
+    const cpl = ch.estimatedCpl || 0;
+    const leads = cpl > 0 ? budget / cpl : 0;
+    
+    const capi = leads * ((ch.capiPercent || 0) / 100);
+    const ap = capi * ((ch.capiToApPercent || 0) / 100);
+    const ad = ap * ((ch.apToAdPercent || 0) / 100);
 
     return { ...ch, budget, leads, capi, ap, ad };
   });
@@ -68,23 +127,27 @@ export const MediaMixSimulator: React.FC<Props> = ({
           </div>
           
           <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-lg border border-slate-700">
-             <span className="text-sm font-medium text-indigo-300">Total Budget:</span>
-             <div className="relative">
-               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">₹</span>
+             <span className="text-sm font-medium text-indigo-300">Simulation Budget:</span>
+             <div className="relative group">
+               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs pointer-events-none">₹</span>
                <input 
-                  type="number" 
-                  value={activeBudget}
-                  onChange={(e) => onUpdateManualBudget(parseFloat(e.target.value) || 0)}
-                  className="bg-slate-900 border border-slate-600 rounded px-2 py-1 pl-6 text-white font-bold w-36 text-right focus:ring-1 focus:ring-indigo-500 outline-none"
+                  ref={budgetInputRef}
+                  type="text"
+                  value={localInputValue}
+                  onChange={handleBudgetChange}
+                  onBlur={handleBudgetBlur}
+                  onFocus={(e) => e.target.select()}
+                  className="bg-slate-900 border border-slate-600 rounded px-2 py-1 pl-6 text-white font-bold w-36 text-right focus:ring-1 focus:ring-indigo-500 outline-none transition-all group-hover:border-slate-500"
+                  placeholder="0"
                />
              </div>
-             {manualBudget !== undefined && manualBudget !== calculatedTotal && (
+             {manualBudget !== undefined && Math.abs(manualBudget - calculatedTotal) > 1 && (
                <button 
-                onClick={() => onUpdateManualBudget(calculatedTotal)}
-                className="text-[10px] text-slate-400 hover:text-white underline"
+                onClick={handleReset}
+                className="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-white text-[10px] px-2 py-1 rounded ml-2 transition-colors font-medium"
                 title="Reset to Business Plan Budget"
                >
-                 Reset
+                 <RotateCcw className="w-3 h-3" /> Reset
                </button>
              )}
           </div>
@@ -95,22 +158,22 @@ export const MediaMixSimulator: React.FC<Props> = ({
             <thead className="bg-slate-950 text-slate-500 border-b border-slate-800 uppercase font-bold whitespace-nowrap">
               <tr>
                 <th className="px-4 py-3 sticky left-0 bg-slate-950 z-10 border-r border-slate-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">Channel</th>
-                <th className="px-2 py-3 text-center w-20">Alloc %</th>
-                <th className="px-3 py-3 text-right">Budget</th>
+                <th className="px-2 py-3 text-center w-20 bg-slate-900/50">Alloc %</th>
+                <th className="px-3 py-3 text-right min-w-[120px] bg-slate-900/50 text-emerald-400">Budget (Edit)</th>
                 <th className="px-2 py-3 text-right w-24">Est. CPL</th>
                 <th className="px-3 py-3 text-right text-indigo-300">Proj. Leads</th>
                 
                 {/* Funnel Inputs */}
-                <th className="px-2 py-3 text-center w-20 bg-slate-900/50 border-l border-slate-800">CAPI %</th>
-                <th className="px-2 py-3 text-right text-indigo-200">Proj. CAPI</th>
+                <th className="px-2 py-3 text-center w-20 bg-slate-900/30 border-l border-slate-800">CAPI %</th>
+                <th className="px-2 py-3 text-right text-indigo-200 bg-slate-900/30">Proj. CAPI</th>
                 
-                <th className="px-2 py-3 text-center w-20 bg-slate-900/50 border-l border-slate-800">CAPI-AP %</th>
-                <th className="px-2 py-3 text-right text-purple-200">Proj. AP</th>
+                <th className="px-2 py-3 text-center w-20 bg-slate-900/30 border-l border-slate-800">CAPI-AP %</th>
+                <th className="px-2 py-3 text-right text-purple-200 bg-slate-900/30">Proj. AP</th>
 
-                <th className="px-2 py-3 text-center w-20 bg-slate-900/50 border-l border-slate-800">AP-AD %</th>
-                <th className="px-2 py-3 text-right text-pink-200">Proj. AD</th>
+                <th className="px-2 py-3 text-center w-20 bg-slate-900/30 border-l border-slate-800">AP-AD %</th>
+                <th className="px-2 py-3 text-right text-pink-200 bg-slate-900/30">Proj. AD</th>
 
-                <th className="px-2 py-3 text-center w-10"></th>
+                <th className="px-2 py-3 text-center w-10 bg-slate-900/30"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -121,24 +184,39 @@ export const MediaMixSimulator: React.FC<Props> = ({
                       type="text"
                       value={channel.name}
                       onChange={(e) => onUpdateChannel(channel.id, 'name', e.target.value)}
-                      className="bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 text-slate-200 font-medium w-full outline-none"
+                      className="bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 text-slate-200 font-medium w-full outline-none placeholder-slate-600"
+                      placeholder="Channel Name"
                      />
                   </td>
                   <td className="px-2 py-2">
                     <input
                       type="number"
-                      value={channel.allocationPercent}
+                      value={channel.allocationPercent === 0 ? '' : Number(channel.allocationPercent.toFixed(2))}
+                      placeholder="0"
                       onChange={(e) => onUpdateChannel(channel.id, 'allocationPercent', parseFloat(e.target.value) || 0)}
                       className="w-full text-center bg-slate-800 border border-slate-700 rounded py-1 text-white font-bold focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </td>
-                  <td className="px-3 py-2 text-right font-medium text-slate-400">
-                    {formatCurrency(channel.budget)}
+                  
+                  {/* EDITABLE CHANNEL BUDGET */}
+                  <td className="px-3 py-2 text-right font-medium">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-600 text-[10px]">₹</span>
+                      <input
+                        type="number"
+                        value={channel.budget === 0 ? '' : Math.round(channel.budget)}
+                        placeholder="0"
+                        onChange={(e) => handleChannelBudgetChange(channel.id, parseFloat(e.target.value) || 0)}
+                        className="w-full text-right bg-slate-800 border border-slate-700 rounded py-1 pl-4 text-emerald-400 font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
                   </td>
+
                   <td className="px-2 py-2">
                     <input
                       type="number"
-                      value={channel.estimatedCpl}
+                      value={channel.estimatedCpl === 0 ? '' : channel.estimatedCpl}
+                      placeholder="0"
                       onChange={(e) => onUpdateChannel(channel.id, 'estimatedCpl', parseFloat(e.target.value) || 0)}
                       className="w-full text-right bg-slate-800 border border-slate-700 rounded py-1 text-white font-medium focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
@@ -151,42 +229,46 @@ export const MediaMixSimulator: React.FC<Props> = ({
                   <td className="px-2 py-2 border-l border-slate-800 bg-slate-900/30">
                      <input
                       type="number"
-                      value={channel.capiPercent}
+                      value={channel.capiPercent === 0 ? '' : channel.capiPercent}
+                      placeholder="0"
                       onChange={(e) => onUpdateChannel(channel.id, 'capiPercent', parseFloat(e.target.value) || 0)}
                       className="w-full text-center bg-slate-800 border border-slate-700 rounded py-1 text-emerald-200 font-medium focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </td>
-                  <td className="px-2 py-2 text-right text-indigo-200">
+                  <td className="px-2 py-2 text-right text-indigo-200 bg-slate-900/30">
                     {Math.round(channel.capi).toLocaleString()}
                   </td>
 
                    <td className="px-2 py-2 border-l border-slate-800 bg-slate-900/30">
                      <input
                       type="number"
-                      value={channel.capiToApPercent}
+                      value={channel.capiToApPercent === 0 ? '' : channel.capiToApPercent}
+                      placeholder="0"
                       onChange={(e) => onUpdateChannel(channel.id, 'capiToApPercent', parseFloat(e.target.value) || 0)}
                       className="w-full text-center bg-slate-800 border border-slate-700 rounded py-1 text-purple-200 font-medium focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </td>
-                  <td className="px-2 py-2 text-right text-purple-200">
+                  <td className="px-2 py-2 text-right text-purple-200 bg-slate-900/30">
                     {Math.round(channel.ap).toLocaleString()}
                   </td>
 
                   <td className="px-2 py-2 border-l border-slate-800 bg-slate-900/30">
                      <input
                       type="number"
-                      value={channel.apToAdPercent}
+                      value={channel.apToAdPercent === 0 ? '' : channel.apToAdPercent}
+                      placeholder="0"
                       onChange={(e) => onUpdateChannel(channel.id, 'apToAdPercent', parseFloat(e.target.value) || 0)}
                       className="w-full text-center bg-slate-800 border border-slate-700 rounded py-1 text-pink-200 font-medium focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </td>
-                  <td className="px-2 py-2 text-right text-pink-200">
+                  <td className="px-2 py-2 text-right text-pink-200 bg-slate-900/30">
                     {Math.round(channel.ad).toLocaleString()}
                   </td>
                   
-                  <td className="px-2 py-2 text-center">
+                  <td className="px-2 py-2 text-center bg-slate-900/30">
                     <button 
-                      onClick={() => onDeleteChannel(channel.id)}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onDeleteChannel(channel.id); }}
                       className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -198,8 +280,8 @@ export const MediaMixSimulator: React.FC<Props> = ({
             <tfoot className="bg-slate-950 border-t border-slate-800 font-bold sticky bottom-0 z-20 shadow-[0_-2px_5px_-2px_rgba(0,0,0,0.5)]">
               <tr>
                 <td className="px-4 py-3 text-white sticky left-0 bg-slate-950 border-r border-slate-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">Total</td>
-                <td className={`px-2 py-3 text-center ${totalAllocation !== 100 ? 'text-red-500' : 'text-green-500'}`}>
-                  {totalAllocation}%
+                <td className={`px-2 py-3 text-center ${Math.abs(totalAllocation - 100) > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+                  {Math.round(totalAllocation)}%
                 </td>
                 <td className="px-3 py-3 text-right text-white">{formatCurrency(totalForecastedBudget)}</td>
                 <td className="px-2 py-3 text-right text-white">Avg ₹{Math.round(blendedCPL).toLocaleString()}</td>
@@ -247,9 +329,9 @@ export const MediaMixSimulator: React.FC<Props> = ({
              )}
            </div>
 
-           {totalAllocation !== 100 && (
+           {Math.abs(totalAllocation - 100) > 0.5 && (
              <div className="text-xs text-red-400 flex items-center gap-2 font-medium">
-               <AlertCircle className="w-4 h-4" /> Allocation must equal 100%. Current: {totalAllocation}%
+               <AlertCircle className="w-4 h-4" /> Allocation must equal 100%. Current: {Math.round(totalAllocation)}%
              </div>
            )}
         </div>
@@ -275,7 +357,7 @@ export const MediaMixSimulator: React.FC<Props> = ({
               <div className="w-full bg-slate-800 rounded-full h-2.5 mt-2 overflow-hidden">
                 <div 
                   className={`h-2.5 rounded-full shadow-lg ${totalForecastedAd >= metrics.targetWalkins ? 'bg-green-500 shadow-green-500/30' : 'bg-red-500 shadow-red-500/30'}`}
-                  style={{ width: `${Math.min((totalForecastedAd / metrics.targetWalkins) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((totalForecastedAd / (metrics.targetWalkins || 1)) * 100, 100)}%` }}
                 ></div>
               </div>
                <div className="mt-2 text-xs text-right">
@@ -310,7 +392,8 @@ export const MediaMixSimulator: React.FC<Props> = ({
         <div className="bg-blue-950/20 rounded-xl border border-blue-900/40 p-5">
             <h4 className="text-blue-400 font-bold text-sm mb-2">Simulation Mode</h4>
             <ul className="text-xs text-blue-300 space-y-2 list-disc pl-4">
-              <li>Edit the <b>Total Budget</b> at the top to see impact of higher/lower spend.</li>
+              <li>Edit the <b>Simulation Budget</b> at the top to see impact of higher/lower spend.</li>
+              <li>Edit individual <b>Channel Budgets</b> directly to auto-adjust allocation %.</li>
               <li>Input <b>CAPI %</b> (Qualified Lead %) and subsequent conversion rates.</li>
               <li>Aim to match or exceed the <b>Target Walkins</b> from the Business Plan.</li>
             </ul>
