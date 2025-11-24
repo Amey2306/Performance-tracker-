@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Project, PlanningData, CalculatedMetrics, WeeklyData, ViewMode, WeeklyActuals, MediaChannel, Poc } from './types';
+import { Project, PlanningData, CalculatedMetrics, WeeklyData, ViewMode, WeeklyActuals, MediaChannel, Poc, ChannelPerformance } from './types';
 import { ProjectDetail } from './components/ProjectDetail';
 import { DashboardOverview } from './components/DashboardOverview';
 import { VisualDashboard } from './components/VisualDashboard';
@@ -72,6 +72,7 @@ const INITIAL_PROJECTS: Project[] = [
     plan: { ...INITIAL_PLAN, overallBV: 350, receivedBudget: 2936003 },
     otherSpends: 50000,
     mediaPlan: [...INITIAL_MEDIA_PLAN],
+    channelPerformance: [], // Init empty
     weeks: generateWeeks(),
     actuals: {
       0: { weekId: 0, leads: 38, ap: 3, ad: 2, spends: 137143, bookings: 0, presalesBookings: 0 },
@@ -89,6 +90,7 @@ const INITIAL_PROJECTS: Project[] = [
     plan: { ...INITIAL_PLAN, overallBV: 500, receivedBudget: 0 },
     otherSpends: 0,
     mediaPlan: [...INITIAL_MEDIA_PLAN],
+    channelPerformance: [],
     weeks: generateWeeks(),
     actuals: {},
     isLocked: false,
@@ -228,6 +230,20 @@ const App = () => {
     }));
   };
 
+  const updateChannelPerformance = (projectId: string, channelId: string, field: keyof ChannelPerformance, value: number) => {
+    setProjects(prev => prev.map(p => {
+      if (p.id !== projectId) return p;
+      const currentPerf = p.channelPerformance?.find(cp => cp.channelId === channelId) || {
+        channelId, spends: 0, leads: 0, openAttempted: 0, contacted: 0, assignedToSales: 0, ap: 0, ad: 0, bookings: 0, lost: 0
+      };
+      
+      const newPerf = { ...currentPerf, [field]: value };
+      // Remove old entry if exists and add new
+      const otherPerfs = p.channelPerformance?.filter(cp => cp.channelId !== channelId) || [];
+      return { ...p, channelPerformance: [...otherPerfs, newPerf] };
+    }));
+  };
+
   // Media Plan Handlers
   const updateMediaChannel = (projectId: string, channelId: string, field: keyof MediaChannel, value: number | string) => {
     setProjects(prev => prev.map(p => {
@@ -281,6 +297,7 @@ const App = () => {
       plan: { ...INITIAL_PLAN },
       otherSpends: 0,
       mediaPlan: [...INITIAL_MEDIA_PLAN],
+      channelPerformance: [],
       weeks: generateWeeks(),
       actuals: {},
       isLocked: false,
@@ -452,6 +469,7 @@ const App = () => {
             onDeleteChannel={(cid) => deleteMediaChannel(activeProject!.id, cid)}
             onUpdateManualBudget={(val) => updateProjectManualBudget(activeProject!.id, val)}
             onToggleLock={toggleProjectLock}
+            onUpdateChannelPerformance={updateChannelPerformance}
           />
         ) : (
           <>

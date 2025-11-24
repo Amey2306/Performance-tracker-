@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Project, TabView, CalculatedMetrics, PlanningData, WeeklyData, WeeklyActuals, ViewMode, MediaChannel } from '../types';
+import { Project, TabView, CalculatedMetrics, PlanningData, WeeklyData, WeeklyActuals, ViewMode, MediaChannel, ChannelPerformance } from '../types';
 import { PlanningSection } from './PlanningSection';
 import { WowTable } from './WowTable';
 import { PerformanceTracker } from './PerformanceTracker';
 import { MediaMixSimulator } from './MediaMixSimulator';
-import { Target, LayoutList, TrendingUp, Lock, Unlock, ArrowLeft, PieChart } from 'lucide-react';
+import { ChannelPerformanceTracker } from './ChannelPerformanceTracker';
+import { Target, LayoutList, TrendingUp, Lock, Unlock, ArrowLeft, PieChart, BarChart2 } from 'lucide-react';
 
 interface Props {
   project: Project;
@@ -20,11 +21,12 @@ interface Props {
   onDeleteChannel: (projectId: string, channelId: string) => void;
   onUpdateManualBudget: (projectId: string, value: number) => void;
   onToggleLock: (id: string) => void;
+  onUpdateChannelPerformance: (projectId: string, channelId: string, field: keyof ChannelPerformance, value: number) => void;
 }
 
 export const ProjectDetail: React.FC<Props> = ({ 
   project, metrics, viewMode, onBack, onUpdatePlan, onUpdateWeek, onUpdateActual, 
-  onUpdateChannel, onAddChannel, onDeleteChannel, onUpdateManualBudget, onToggleLock 
+  onUpdateChannel, onAddChannel, onDeleteChannel, onUpdateManualBudget, onToggleLock, onUpdateChannelPerformance 
 }) => {
   const [activeTab, setActiveTab] = useState<TabView>(TabView.PLANNING);
 
@@ -70,6 +72,13 @@ export const ProjectDetail: React.FC<Props> = ({
           >
             <TrendingUp className="w-4 h-4" />
             Performance
+          </button>
+          <button
+            onClick={() => setActiveTab(TabView.CHANNEL_TRACKER)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === TabView.CHANNEL_TRACKER ? 'bg-slate-800 text-white shadow ring-1 ring-slate-700' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+          >
+            <BarChart2 className="w-4 h-4" />
+            Channel Tracker
           </button>
         </div>
       </div>
@@ -139,6 +148,16 @@ export const ProjectDetail: React.FC<Props> = ({
             plan={project.plan}
             onUpdateActual={(wid, k, v) => onUpdateActual(project.id, wid, k, v)}
             viewMode={viewMode}
+          />
+        )}
+
+        {activeTab === TabView.CHANNEL_TRACKER && (
+          <ChannelPerformanceTracker
+            channels={project.mediaPlan}
+            performance={project.channelPerformance || []}
+            viewMode={viewMode}
+            taxPercent={project.plan.taxPercent}
+            onUpdate={(cid, f, v) => onUpdateChannelPerformance(project.id, cid, f, v)}
           />
         )}
       </div>

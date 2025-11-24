@@ -73,6 +73,20 @@ export interface MediaChannel {
   isCustom?: boolean;
 }
 
+// NEW: Channel Level Performance Tracking
+export interface ChannelPerformance {
+  channelId: string;
+  spends: number;
+  leads: number; // Grand Total
+  openAttempted: number;
+  contacted: number;
+  assignedToSales: number;
+  ap: number; // Appointment Proposed
+  ad: number; // Site Visit Done
+  bookings: number;
+  lost: number;
+}
+
 export interface Poc {
   id: string;
   name: string;
@@ -88,6 +102,7 @@ export interface Project {
   otherSpends: number; // New: Non-performance marketing spends
   manualMediaBudget?: number; // Override for simulation
   mediaPlan: MediaChannel[]; 
+  channelPerformance: ChannelPerformance[]; // New field
   weeks: WeeklyData[];
   actuals: Record<number, WeeklyActuals>; 
   isLocked: boolean; 
@@ -102,5 +117,6 @@ export enum TabView {
   PLANNING = 'PLANNING',
   MEDIA_MIX = 'MEDIA_MIX',
   WOW_PLAN = 'WOW_PLAN',
-  PERFORMANCE = 'PERFORMANCE'
+  PERFORMANCE = 'PERFORMANCE',
+  CHANNEL_TRACKER = 'CHANNEL_TRACKER' // New Tab
 }
