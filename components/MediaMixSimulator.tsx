@@ -31,7 +31,6 @@ export const MediaMixSimulator: React.FC<Props> = ({
   const [localInputValue, setLocalInputValue] = useState<string>(propBudget.toString());
 
   // Sync local state ONLY when prop changes externally AND input is not focused.
-  // This prevents the input from fighting the user while they type.
   useEffect(() => {
     if (document.activeElement !== budgetInputRef.current) {
         setLocalInputValue(propBudget.toString());
@@ -67,13 +66,11 @@ export const MediaMixSimulator: React.FC<Props> = ({
   };
   
   // 2. DETERMINE ACTIVE BUDGET FOR CALCULATION
-  // We use the local string parsed as float to ensure the table updates INSTANTLY as you type.
   const currentInputVal = parseFloat(localInputValue);
   const activeBudget = !isNaN(currentInputVal) ? currentInputVal : 0;
 
   // 3. HANDLE CHANNEL BUDGET CHANGE (Reverse Calculation)
   const handleChannelBudgetChange = (channelId: string, newBudget: number) => {
-      // If total budget is 0, we can't calculate percentage. Avoid division by zero.
       if (activeBudget <= 0) return; 
       
       const newAlloc = (newBudget / activeBudget) * 100;
@@ -126,7 +123,7 @@ export const MediaMixSimulator: React.FC<Props> = ({
             </h2>
           </div>
           
-          <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-lg border border-slate-700">
+          <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-lg border border-slate-700 w-full md:w-auto justify-between md:justify-start">
              <span className="text-sm font-medium text-indigo-300">Simulation Budget:</span>
              <div className="relative group">
                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs pointer-events-none">₹</span>
@@ -163,7 +160,6 @@ export const MediaMixSimulator: React.FC<Props> = ({
                 <th className="px-2 py-3 text-right w-24">Est. CPL</th>
                 <th className="px-3 py-3 text-right text-indigo-300">Proj. Leads</th>
                 
-                {/* Funnel Inputs */}
                 <th className="px-2 py-3 text-center w-20 bg-slate-900/30 border-l border-slate-800">CAPI %</th>
                 <th className="px-2 py-3 text-right text-indigo-200 bg-slate-900/30">Proj. CAPI</th>
                 
@@ -198,7 +194,6 @@ export const MediaMixSimulator: React.FC<Props> = ({
                     />
                   </td>
                   
-                  {/* EDITABLE CHANNEL BUDGET */}
                   <td className="px-3 py-2 text-right font-medium">
                     <div className="relative">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-600 text-[10px]">₹</span>
@@ -225,7 +220,6 @@ export const MediaMixSimulator: React.FC<Props> = ({
                     {Math.round(channel.leads).toLocaleString()}
                   </td>
 
-                  {/* Funnel Inputs */}
                   <td className="px-2 py-2 border-l border-slate-800 bg-slate-900/30">
                      <input
                       type="number"

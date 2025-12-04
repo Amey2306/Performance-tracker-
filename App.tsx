@@ -345,8 +345,8 @@ const App = () => {
       
       {/* --- HEADER --- */}
       <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 lg:h-16 flex flex-col lg:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
             <div className="bg-gradient-to-tr from-brand-600 to-brand-400 p-2 rounded-lg shadow-lg shadow-brand-500/20">
               <LayoutDashboard className="w-6 h-6 text-white" />
             </div>
@@ -356,11 +356,11 @@ const App = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
             {/* Date Range Filter */}
             <div className="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-1 shadow-sm">
                <div className="flex items-center px-2 border-r border-slate-700">
-                 <span className="text-[10px] text-slate-500 mr-2 font-bold">FROM</span>
+                 <span className="text-[10px] text-slate-500 mr-2 font-bold hidden sm:inline">FROM</span>
                  <input 
                    type="date" 
                    value={reportStartDate}
@@ -369,7 +369,7 @@ const App = () => {
                  />
                </div>
                <div className="flex items-center px-2">
-                 <span className="text-[10px] text-slate-500 mr-2 font-bold">TO</span>
+                 <span className="text-[10px] text-slate-500 mr-2 font-bold hidden sm:inline">TO</span>
                  <input 
                    type="date" 
                    value={reportEndDate}
@@ -417,7 +417,7 @@ const App = () => {
               )}
             </div>
 
-            <div className="h-6 w-px bg-slate-800 mx-2"></div>
+            <div className="hidden lg:block h-6 w-px bg-slate-800 mx-1"></div>
 
             {/* View Toggles */}
             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
@@ -425,13 +425,13 @@ const App = () => {
                 onClick={() => setIsVisualMode(false)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isVisualMode ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <Table className="w-3.5 h-3.5" /> Report
+                <Table className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Report</span>
               </button>
               <button
                 onClick={() => setIsVisualMode(true)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isVisualMode ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <PieChart className="w-3.5 h-3.5" /> Analytics
+                <PieChart className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Analytics</span>
               </button>
             </div>
 
@@ -440,13 +440,13 @@ const App = () => {
                 onClick={() => setViewMode(ViewMode.BRAND)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === ViewMode.BRAND ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <Briefcase className="w-3.5 h-3.5" /> Brand
+                <Briefcase className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Brand</span>
               </button>
               <button
                 onClick={() => setViewMode(ViewMode.AGENCY)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === ViewMode.AGENCY ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <UserCircle className="w-3.5 h-3.5" /> Agency
+                <UserCircle className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Agency</span>
               </button>
             </div>
           </div>
@@ -454,7 +454,7 @@ const App = () => {
       </header>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="max-w-[1600px] mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-6">
         {selectedProjectId ? (
           <ProjectDetail 
             project={activeProject!} 
@@ -473,17 +473,17 @@ const App = () => {
           />
         ) : (
           <>
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
               <div>
-                <h2 className="text-3xl font-black text-white tracking-tight">Project Portfolio</h2>
-                <p className="text-slate-400 mt-1 font-medium flex items-center gap-2">
+                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Project Portfolio</h2>
+                <p className="text-slate-400 mt-1 font-medium flex items-center gap-2 text-sm">
                    <Calendar className="w-4 h-4" /> 
                    Reporting Period: <span className="text-white">{reportStartDate}</span> to <span className="text-white">{reportEndDate}</span>
                 </p>
               </div>
               <button 
                 onClick={() => setIsProjectModalOpen(true)}
-                className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-brand-500/20 transition-all transform hover:scale-105"
+                className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-brand-500/20 transition-all transform hover:scale-105 w-full md:w-auto justify-center"
               >
                 <Plus className="w-5 h-5" /> New Project
               </button>

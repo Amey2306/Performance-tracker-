@@ -40,7 +40,7 @@ export const PlanningSection: React.FC<Props> = ({ data, metrics, onChange, view
 
   return (
     <div className="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden mb-8 animate-in fade-in duration-300">
-      <div className="bg-slate-900 border-b border-slate-800 p-6 flex justify-between items-center">
+      <div className="bg-slate-900 border-b border-slate-800 p-4 md:p-6 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Target className="w-5 h-5 text-brand-500" />
@@ -55,7 +55,7 @@ export const PlanningSection: React.FC<Props> = ({ data, metrics, onChange, view
         )}
       </div>
 
-      <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-8">
+      <div className="p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-8">
         {/* Input Group 1: Business Targets */}
         <div className="space-y-6">
           <h3 className="text-xs font-bold text-slate-600 uppercase border-b border-slate-800 pb-2">Revenue Targets</h3>
@@ -166,7 +166,7 @@ export const PlanningSection: React.FC<Props> = ({ data, metrics, onChange, view
       </div>
 
       {/* Summary Footer */}
-      <div className={`px-8 py-5 border-t border-slate-800 flex flex-wrap gap-12 items-center ${viewMode === ViewMode.AGENCY ? 'bg-amber-950/20' : 'bg-emerald-950/20'}`}>
+      <div className={`px-6 md:px-8 py-5 border-t border-slate-800 flex flex-col md:flex-row flex-wrap gap-6 md:gap-12 items-start md:items-center ${viewMode === ViewMode.AGENCY ? 'bg-amber-950/20' : 'bg-emerald-950/20'}`}>
         <div>
           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Total Plan Spend ({viewMode === ViewMode.BRAND ? 'Base' : 'All-in'})</span>
           <div className="text-2xl font-black text-white tracking-tight">
@@ -174,33 +174,33 @@ export const PlanningSection: React.FC<Props> = ({ data, metrics, onChange, view
           </div>
         </div>
         
-        <div className="h-10 w-px bg-slate-800"></div>
+        <div className="hidden md:block h-10 w-px bg-slate-800"></div>
         
         {/* New Metrics Display for Dashboard (Digital BV / Presales BV) */}
-        <div>
-           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Digital BV</span>
-           <div className="text-lg font-bold text-white">{formatCrore(metrics.digitalBV)}</div>
-        </div>
-        <div>
-           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Target COM %</span>
-           <div className="text-lg font-bold text-white">{metrics.targetCOM.toFixed(2)}%</div>
+        <div className="flex gap-8 flex-wrap">
+            <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Digital BV</span>
+            <div className="text-lg font-bold text-white">{formatCrore(metrics.digitalBV)}</div>
+            </div>
+            <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Target COM %</span>
+            <div className="text-lg font-bold text-white">{metrics.targetCOM.toFixed(2)}%</div>
+            </div>
+
+            <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Target CPW</span>
+            <div className="text-lg font-bold text-slate-300">{formatCurrency(metrics.cpw)}</div>
+            </div>
+
+            <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Target CPB</span>
+            <div className="text-lg font-bold text-slate-300">{formatCurrency(metrics.cpb)}</div>
+            </div>
         </div>
 
-        <div className="h-10 w-px bg-slate-800"></div>
-
-        <div>
-           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Target CPW</span>
-           <div className="text-lg font-bold text-slate-300">{formatCurrency(metrics.cpw)}</div>
-        </div>
-
-        <div>
-           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Target CPB</span>
-           <div className="text-lg font-bold text-slate-300">{formatCurrency(metrics.cpb)}</div>
-        </div>
-
-        <div className="ml-auto">
-           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 text-right">Proj. Revenue</span>
-           <div className="text-xl font-bold text-brand-400">{formatCrore(metrics.revenue / 10000000)}</div>
+        <div className="md:ml-auto w-full md:w-auto">
+           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 md:text-right">Proj. Revenue</span>
+           <div className="text-xl font-bold text-brand-400 md:text-right">{formatCrore(metrics.revenue / 10000000)}</div>
         </div>
       </div>
     </div>

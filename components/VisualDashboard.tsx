@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { Project, ViewMode } from '../types';
-import { TrendingUp, Users, Footprints, IndianRupee, ArrowUpRight, ArrowDownRight, Target, Activity, Info, Filter, PieChart, BarChart3, AlertCircle } from 'lucide-react';
+import { TrendingUp, Users, Footprints, IndianRupee, ArrowUpRight, ArrowDownRight, Target, Activity, Info, Filter, PieChart, BarChart3, AlertCircle, Download } from 'lucide-react';
+import { exportAnalytics } from '../utils/exportUtils';
 
 interface Props {
   projects: Project[];
@@ -74,8 +75,6 @@ export const VisualDashboard: React.FC<Props> = ({ projects, viewMode }) => {
        if (!mediaMixMap.has(ch.id)) {
          mediaMixMap.set(ch.id, { name: ch.name, allocation: 0 });
        }
-       // Weighted allocation based on budget size could be better, but using simple average or sum for visualization
-       // Here we sum the allocations to normalize later or just visualize relative weight
        mediaMixMap.get(ch.id)!.allocation += ch.allocationPercent;
     });
   });
@@ -155,7 +154,7 @@ export const VisualDashboard: React.FC<Props> = ({ projects, viewMode }) => {
       const angle = percentage * 360;
       const startAngle = accumulatedAngle;
       accumulatedAngle += angle;
-      return { ...m, percentage, startAngle, endAngle: accumulatedAngle, color: '' }; // Colors assigned in render
+      return { ...m, percentage, startAngle, endAngle: accumulatedAngle, color: '' }; 
   });
   const pieColors = ['#3b82f6', '#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
@@ -189,23 +188,33 @@ export const VisualDashboard: React.FC<Props> = ({ projects, viewMode }) => {
             </p>
          </div>
          
-         <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 shadow-sm hover:border-brand-500/50 transition-colors">
-            <Filter className="w-4 h-4 text-slate-400 mr-3" />
-            <div className="flex flex-col">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Project Filter</span>
-                <select
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="bg-transparent text-sm font-bold text-white outline-none cursor-pointer min-w-[200px]"
-                >
-                    <option value="all">All Active Projects</option>
-                    <optgroup label="Specific Projects">
-                        {eligibleProjects.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                    </optgroup>
-                </select>
-            </div>
+         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+             <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 shadow-sm hover:border-brand-500/50 transition-colors w-full md:w-auto">
+                <Filter className="w-4 h-4 text-slate-400 mr-3" />
+                <div className="flex flex-col w-full">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Project Filter</span>
+                    <select
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="bg-transparent text-sm font-bold text-white outline-none cursor-pointer min-w-[150px] w-full"
+                    >
+                        <option value="all">All Active Projects</option>
+                        <optgroup label="Specific Projects">
+                            {eligibleProjects.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </optgroup>
+                    </select>
+                </div>
+             </div>
+             
+             <button 
+               onClick={() => exportAnalytics(projects, viewMode, selectedProjectId)}
+               className="p-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors w-full sm:w-auto flex justify-center"
+               title="Export Analytics Data"
+             >
+               <Download className="w-5 h-5" />
+             </button>
          </div>
       </div>
 
@@ -277,7 +286,7 @@ export const VisualDashboard: React.FC<Props> = ({ projects, viewMode }) => {
            </div>
            <div className="w-full h-64">
               {trends.length > 0 ? (
-              <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+              <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
                  {/* Grid Lines */}
                  {[0, 0.25, 0.5, 0.75, 1].map(pct => {
                    const y = height - padding - (pct * (height - padding * 2));
@@ -379,7 +388,7 @@ export const VisualDashboard: React.FC<Props> = ({ projects, viewMode }) => {
            </div>
            <div className="w-full h-56">
               {trends.length > 0 ? (
-              <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+              <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
                  {/* Grid */}
                  {[0, 0.5, 1].map(pct => {
                    const y = height - padding - (pct * (height - padding * 2));

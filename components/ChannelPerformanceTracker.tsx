@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { MediaChannel, ChannelPerformance, ViewMode } from '../types';
 import { Calculator, Info, TrendingUp } from 'lucide-react';
@@ -50,7 +51,7 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-lg">
           <div className="text-xs text-slate-500 uppercase font-bold mb-1">Total Channel Spend</div>
           <div className="text-2xl font-bold text-white">{formatCurrency(totals.spends * taxMult)}</div>
@@ -78,7 +79,7 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
             </h3>
             <p className="text-sm text-slate-500">Track granular performance from Leads to Lost per channel.</p>
           </div>
-          <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center gap-2">
+          <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center gap-2 hidden sm:flex">
             <Info className="w-3 h-3" /> Spends are {viewMode === ViewMode.AGENCY ? 'All-in (Taxed)' : 'Base (Excl. Tax)'}
           </div>
         </div>
@@ -98,14 +99,17 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                 <th className="px-3 py-3 text-right min-w-[80px]">Contacted</th>
                 <th className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">%</th>
                 
-                <th className="px-3 py-3 text-right min-w-[80px]">Assigned</th>
+                <th className="px-3 py-3 text-right min-w-[80px]">Assigned (CAPI)</th>
                 <th className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">%</th>
+                <th className="px-3 py-3 text-right min-w-[90px] bg-cyan-950/10 text-cyan-300 border-r border-slate-800">CP-CAPI</th>
                 
                 <th className="px-3 py-3 text-right min-w-[80px]">AP</th>
                 <th className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">%</th>
+                <th className="px-3 py-3 text-right min-w-[90px] bg-purple-950/10 text-purple-300 border-r border-slate-800">CP-AP</th>
                 
                 <th className="px-3 py-3 text-right min-w-[80px]">AD (SVD)</th>
                 <th className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">%</th>
+                <th className="px-3 py-3 text-right min-w-[90px] bg-pink-950/10 text-pink-300 border-r border-slate-800">CP-AD</th>
                 
                 <th className="px-3 py-3 text-right min-w-[80px] text-emerald-400 bg-emerald-950/10">Bookings</th>
                 
@@ -118,6 +122,12 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                 const p = getPerf(ch.id);
                 const spendsDisplay = p.spends * taxMult;
                 const cpl = p.leads > 0 ? spendsDisplay / p.leads : 0;
+                
+                // CP-CAPI based on Assigned to Sales (Qualified)
+                const cpCapi = p.assignedToSales > 0 ? spendsDisplay / p.assignedToSales : 0;
+                
+                const cpAp = p.ap > 0 ? spendsDisplay / p.ap : 0;
+                const cpAd = p.ad > 0 ? spendsDisplay / p.ad : 0;
 
                 return (
                   <tr key={ch.id} className="hover:bg-slate-800/30 transition-colors group">
@@ -178,7 +188,7 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                       {formatPercent(p.contacted, p.leads)}
                     </td>
 
-                    {/* Assigned */}
+                    {/* Assigned (Qualified/CAPI) */}
                     <td className="px-2 py-2">
                       <input
                         type="number"
@@ -189,6 +199,9 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                     </td>
                     <td className="px-2 py-2 text-right text-slate-500 text-[10px] border-r border-slate-800">
                       {formatPercent(p.assignedToSales, p.leads)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium text-cyan-300 bg-cyan-950/10 border-r border-slate-800">
+                      {cpCapi > 0 ? formatCurrency(cpCapi) : '-'}
                     </td>
 
                     {/* AP */}
@@ -203,6 +216,9 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                     <td className="px-2 py-2 text-right text-slate-500 text-[10px] border-r border-slate-800">
                       {formatPercent(p.ap, p.leads)}
                     </td>
+                    <td className="px-3 py-2 text-right font-medium text-purple-300 bg-purple-950/10 border-r border-slate-800">
+                      {cpAp > 0 ? formatCurrency(cpAp) : '-'}
+                    </td>
 
                     {/* AD */}
                     <td className="px-2 py-2">
@@ -210,11 +226,14 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                         type="number"
                         value={p.ad || ''}
                         onChange={(e) => onUpdate(ch.id, 'ad', parseFloat(e.target.value) || 0)}
-                        className="w-full text-right bg-transparent border-b border-slate-800 focus:border-slate-500 outline-none text-slate-300 font-bold"
+                        className="w-full text-right bg-transparent border-b border-slate-800 focus:border-slate-500 outline-none text-slate-300"
                       />
                     </td>
                     <td className="px-2 py-2 text-right text-slate-500 text-[10px] border-r border-slate-800">
                       {formatPercent(p.ad, p.leads)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium text-pink-300 bg-pink-950/10 border-r border-slate-800">
+                      {cpAd > 0 ? formatCurrency(cpAd) : '-'}
                     </td>
 
                     {/* Bookings */}
@@ -260,12 +279,21 @@ export const ChannelPerformanceTracker: React.FC<Props> = ({ channels, performan
                 
                 <td className="px-3 py-3 text-right text-slate-300">{totals.assignedToSales}</td>
                 <td className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">{formatPercent(totals.assignedToSales, totals.leads)}</td>
+                <td className="px-3 py-3 text-right text-cyan-400 border-r border-slate-800">
+                   {totals.assignedToSales > 0 ? formatCurrency((totals.spends * taxMult) / totals.assignedToSales) : '-'}
+                </td>
                 
                 <td className="px-3 py-3 text-right text-slate-300">{totals.ap}</td>
                 <td className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">{formatPercent(totals.ap, totals.leads)}</td>
+                <td className="px-3 py-3 text-right text-purple-400 border-r border-slate-800">
+                   {totals.ap > 0 ? formatCurrency((totals.spends * taxMult) / totals.ap) : '-'}
+                </td>
                 
                 <td className="px-3 py-3 text-right text-slate-300">{totals.ad}</td>
                 <td className="px-2 py-3 text-right text-slate-600 border-r border-slate-800">{formatPercent(totals.ad, totals.leads)}</td>
+                <td className="px-3 py-3 text-right text-pink-400 border-r border-slate-800">
+                   {totals.ad > 0 ? formatCurrency((totals.spends * taxMult) / totals.ad) : '-'}
+                </td>
                 
                 <td className="px-3 py-3 text-right text-emerald-400 bg-emerald-950/10">{totals.bookings}</td>
                 
